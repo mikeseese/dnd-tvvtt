@@ -1,0 +1,7 @@
+next-auth:
+  secret: "secret"
+
+discord:
+  client:
+    id: ""
+    secret: ""
