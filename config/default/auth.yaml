@@ -5,3 +5,10 @@ discord:
   client:
     id: ""
     secret: ""
+
+stub:
+  enabled: false
+  dm:
+    id: "dev-dm-user-001"
+    name: "Dev DM"
+    email: "dm@localhost"

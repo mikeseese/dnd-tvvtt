@@ -8,26 +8,23 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
-  // Further reading:
-  // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
-  // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
   url      = env("DATABASE_URL")
 }
 
-// Necessary for Next auth
+// ─── NextAuth Models ────────────────────────────────────────
+
 model Account {
   id                       String  @id @default(cuid())
   userId                   String
   type                     String
   provider                 String
   providerAccountId        String
-  refresh_token            String? // @db.Text
-  access_token             String? // @db.Text
+  refresh_token            String?
+  access_token             String?
   expires_at               Int?
   token_type               String?
   scope                    String?
-  id_token                 String? // @db.Text
+  id_token                 String?
   session_state            String?
   user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   refresh_token_expires_in Int?
@@ -44,13 +41,14 @@ model Session {
 }
 
 model User {
-  id            String         @id @default(cuid())
+  id            String     @id @default(cuid())
   name          String?
-  email         String?        @unique
+  email         String?    @unique
   emailVerified DateTime?
   image         String?
   accounts      Account[]
   sessions      Session[]
+  campaigns     Campaign[]
 }
 
 model VerificationToken {
@@ -59,4 +57,138 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ─── VTT Models ─────────────────────────────────────────────
+
+model Campaign {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  imageUrl    String?
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  characters  PlayerCharacter[]
+  maps        GameMap[]
+  sessions    GameSession[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model PlayerCharacter {
+  id                String            @id @default(cuid())
+  fullName          String
+  nickname          String?
+  playerName        String?
+  level             Int               @default(1)
+  characterClass    String
+  race              String
+  fullImageUrl      String?
+  avatarImageUrl    String?
+  externalLink      String?
+  currentHp         Int
+  maxHp             Int
+  ac                Int
+  campaignId        String
+  campaign          Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  tokens            PlayerToken[]
+  deviceAuths       DeviceAuth[]
+  initiativeEntries InitiativeEntry[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model GameMap {
+  id           String        @id @default(cuid())
+  name         String
+  imageUrl     String
+  imageWidth   Int           @default(0)
+  imageHeight  Int           @default(0)
+  gridOffsetX  Float         @default(0)
+  gridOffsetY  Float         @default(0)
+  gridCellSize Float         @default(50)
+  gridRows     Int           @default(20)
+  gridCols     Int           @default(20)
+  campaignId   String
+  campaign     Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  sessionMaps  SessionMap[]
+  tokens       PlayerToken[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model GameSession {
+  id                String            @id @default(cuid())
+  name              String
+  shortCode         String            @unique
+  status            String            @default("pending")
+  campaignId        String
+  campaign          Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  sessionMaps       SessionMap[]
+  tokens            PlayerToken[]
+  deviceAuths       DeviceAuth[]
+  encounters        Encounter[]
+  activeMapId       String?
+  activeEncounterId String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model Encounter {
+  id          String            @id @default(cuid())
+  name        String
+  sessionId   String
+  session     GameSession       @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  status      String            @default("active")
+  currentTurn Int               @default(0)
+  initiative  InitiativeEntry[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model SessionMap {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  mapId     String
+  map       GameMap     @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  sortOrder Int         @default(0)
+
+  @@unique([sessionId, mapId])
+}
+
+model PlayerToken {
+  id          String          @id @default(cuid())
+  sessionId   String
+  session     GameSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  characterId String
+  character   PlayerCharacter @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  mapId       String
+  map         GameMap         @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  x           Int             @default(0)
+  y           Int             @default(0)
+
+  @@unique([sessionId, characterId, mapId])
+}
+
+model DeviceAuth {
+  id          String           @id @default(cuid())
+  token       String           @unique
+  sessionId   String
+  session     GameSession      @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  characterId String?
+  character   PlayerCharacter? @relation(fields: [characterId], references: [id])
+  createdAt   DateTime         @default(now())
+}
+
+model InitiativeEntry {
+  id          String          @id @default(cuid())
+  encounterId String
+  encounter   Encounter       @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  characterId String
+  character   PlayerCharacter @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  sortOrder   Int             @default(0)
+  roll        Int             @default(0)
+
+  @@unique([encounterId, characterId])
 }

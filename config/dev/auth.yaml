@@ -1,0 +1,6 @@
+stub:
+  enabled: true
+  dm:
+    id: "dev-dm-user-001"
+    name: "Dev DM"
+    email: "dm@localhost"

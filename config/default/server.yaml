@@ -1,1 +1,3 @@
 port: 3000
+# How often (in seconds) cached token positions are flushed to the DB
+cacheFlushIntervalSeconds: 30

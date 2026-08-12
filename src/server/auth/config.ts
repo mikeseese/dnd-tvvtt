@@ -26,6 +26,8 @@ declare module "next-auth" {
   // }
 }
 
+export const stubEnabled = config.get<boolean>("auth.stub.enabled");
+
 /**
  * Options for NextAuth.js used to configure adapters, providers, callbacks, etc.
  *
@@ -38,15 +40,6 @@ export const authConfig = {
       clientId: config.get<string>("auth.discord.client.id"),
       clientSecret: config.get<string>("auth.discord.client.secret"),
     }),
-    /**
-     * ...add more providers here.
-     *
-     * Most other providers require a bit more work than the Discord provider. For example, the
-     * GitHub provider requires you to add the `refresh_token_expires_in` field to the Account
-     * model. Refer to the NextAuth.js docs for the provider you want to use. Example:
-     *
-     * @see https://next-auth.js.org/providers/github
-     */
   ],
   adapter: PrismaAdapter(db),
   callbacks: {
